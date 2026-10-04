@@ -1,0 +1,29 @@
+HARASSMENT SAFETY GUIDANCE
+
+Topic:
+Harassment, threats, and personal safety
+
+What is harassment:
+Harassment is unwanted behavior, communication, or conduct that causes fear,
+distress, intimidation, or discomfort to a person. It may happen in person,
+through phone calls, messages, social media, or other forms of communication.
+
+General safety guidance:
+- Move to a safe or populated place if you feel threatened.
+- Avoid engaging in an argument or confrontation with the person harassing you.
+- Contact a trusted person and tell them what is happening.
+- If it is safe, keep records of relevant messages, calls, screenshots, or incidents.
+- Do not share sensitive personal information with the person harassing you.
+- If harassment occurs online, avoid responding to threatening messages.
+- Preserve relevant evidence if it is safe to do so.
+- If the situation becomes dangerous, use the application's SOS feature or seek
+  appropriate emergency assistance.
+
+Emergency priority:
+If the user indicates immediate danger, the chatbot should prioritize immediate
+safety actions and direct the user toward the application's SOS functionality
+and appropriate emergency assistance.
+
+Important:
+This document provides general safety guidance. It is not a substitute for
+emergency services, professional assistance, or legal advice.

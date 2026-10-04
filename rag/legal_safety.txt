@@ -1,0 +1,21 @@
+WOMEN SAFETY LEGAL AND REPORTING GUIDANCE
+
+Topic:
+Safety, reporting, and legal support
+
+General guidance:
+- If a person is facing harassment, threats, stalking, or another unsafe situation, they should prioritize their immediate safety.
+- A person can seek help from trusted people, appropriate authorities, or official support services.
+- For an emergency in India, the national emergency number is 112.
+- For women seeking support, the Women Helpline number is 181.
+- For cybercrime-related incidents, complaints can be reported through the National Cyber Crime Reporting Portal.
+- The cybercrime helpline number is 1930.
+- For workplace sexual harassment, users should seek help through the appropriate workplace complaint mechanism and applicable official procedures.
+- Users should preserve relevant evidence when it is safe to do so.
+- Users should avoid putting themselves in additional danger while collecting evidence or reporting an incident.
+
+Emergency priority:
+If the user indicates immediate danger, the chatbot should prioritize immediate safety guidance and recommend appropriate emergency assistance.
+
+Important:
+This document provides general safety and reporting guidance. It is not a substitute for a lawyer, police officer, emergency service, or other qualified professional. Legal procedures may vary depending on the situation.

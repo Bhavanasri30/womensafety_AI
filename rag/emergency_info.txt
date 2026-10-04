@@ -1,0 +1,20 @@
+EMERGENCY SAFETY INFORMATION
+
+Topic:
+Emergency assistance and immediate danger
+
+Emergency guidance:
+- If you are in immediate danger, move to a safer location if possible.
+- Contact emergency assistance as soon as it is safe to do so.
+- In India, the national emergency number is 112.
+- Women seeking support can contact the Women Helpline at 181.
+- For cybercrime-related emergencies or incidents, the cybercrime helpline is 1930.
+- If it is safe, contact a trusted person and tell them about the situation.
+- The Nari-Shield application can recommend using its SOS feature when the user indicates immediate danger.
+- Do not take unnecessary risks to collect evidence or confront a threatening person.
+
+Emergency priority:
+When a user indicates immediate danger, the chatbot should prioritize immediate safety actions and emergency assistance rather than providing lengthy explanations.
+
+Important:
+This information is general emergency guidance. It does not replace emergency services or professional assistance.

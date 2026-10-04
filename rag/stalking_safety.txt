@@ -1,0 +1,20 @@
+STALKING SAFETY GUIDANCE
+
+Topic:
+Stalking and personal safety
+
+General safety guidance:
+- If you believe someone is following you, move toward a busy, well-lit, or populated public place.
+- Avoid confronting or engaging with the person who may be following you.
+- Contact someone you trust and tell them what is happening.
+- If it is safe to do so, share your location with a trusted person.
+- Keep your phone accessible so that you can contact help if the situation becomes dangerous.
+- If you are in immediate danger, use the application's SOS feature or seek appropriate emergency assistance.
+- If possible and safe, record relevant details about the incident, such as the time, location, and description of the person or vehicle.
+- Do not put yourself in additional danger just to collect evidence.
+
+Emergency priority:
+If the user indicates that they are in immediate danger, the chatbot should prioritize immediate safety guidance and direct the user toward the application's SOS functionality and appropriate emergency assistance.
+
+Important:
+This document provides general safety guidance. It is not a substitute for emergency services, professional assistance, or legal advice.

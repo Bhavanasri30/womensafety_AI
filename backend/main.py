@@ -2,26 +2,39 @@
 # NARI-SHIELD AI - FASTAPI BACKEND
 # ============================================================
 
-# This file contains the main API endpoints
-# for the Nari-Shield AI backend.
+# Main backend for the Nari-Shield AI system.
 #
-# Main modules:
-# 1. ML situation analysis
-# 2. SOS decision
-# 3. Trusted contacts
-# 4. Safety word
-# 5. Location
-# 6. SOS preparation
-# 7. Incident history
-# 8. Confirmed SOS + incident recording
-
+# Modules:
+# 1. User registration
+# 2. User login
+# 3. JWT authentication
+# 4. ML situation analysis
+# 5. RAG safety chatbot
+# 6. SOS decision
+# 7. Trusted contacts
+# 8. Safety word
+# 9. Location
+# 10. SOS preparation
+# 11. Incident history
+# 12. Confirmed SOS
 
 # ============================================================
 # IMPORT LIBRARIES
 # ============================================================
 
-from fastapi import FastAPI
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException
+)
+
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials
+)
+
 from pydantic import BaseModel
+
 import joblib
 
 
@@ -29,33 +42,69 @@ import joblib
 # IMPORT PROJECT MODULES
 # ============================================================
 
+# Authentication
+from backend.auth import (
+    register_user,
+    login_user,
+    verify_access_token
+)
+
+
+# ML + SOS
 from backend.sos import get_sos_decision
 
+
+# Trusted contacts
 from backend.contacts import (
     add_contact,
     get_contacts,
     remove_contact
 )
 
+
+# Safety word
 from backend.safety_word import (
     set_safety_word,
     get_safety_word,
     check_safety_word
 )
 
+
+# SOS preparation
 from backend.sos_service import prepare_sos
 
+
+# Location
 from backend.location import (
     update_location,
     get_location,
     clear_location
 )
 
+
+# Incidents
 from backend.incidents import (
     add_incident,
     get_incidents,
     clear_incidents
 )
+
+
+# RAG
+from rag.rag_answer import generate_answer
+
+
+# ============================================================
+# JWT SECURITY
+# ============================================================
+
+# HTTPBearer allows FastAPI to receive:
+#
+# Authorization: Bearer <JWT_TOKEN>
+#
+# This will be used to protect private endpoints.
+
+security = HTTPBearer()
 
 
 # ============================================================
@@ -70,6 +119,43 @@ app = FastAPI(
 
 
 # ============================================================
+# JWT CURRENT USER FUNCTION
+# ============================================================
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Verify the JWT token sent by the user.
+
+    If the token is valid:
+        return the user_id.
+
+    If the token is invalid:
+        return HTTP 401 error.
+    """
+
+    # Get the actual token from:
+    #
+    # Authorization: Bearer <token>
+    #
+    token = credentials.credentials
+
+    # Verify the token
+    user_id = verify_access_token(token)
+
+    # Token is invalid or expired
+    if user_id is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired authentication token."
+        )
+
+    # Return the logged-in user's ID
+    return user_id
+
+
+# ============================================================
 # LOAD ML MODELS
 # ============================================================
 
@@ -78,15 +164,18 @@ risk_model = joblib.load(
     "models/risk_model.pkl"
 )
 
+
 # Risk TF-IDF vectorizer
 risk_vectorizer = joblib.load(
     "models/risk_vectorizer.pkl"
 )
 
+
 # Severity classification model
 severity_model = joblib.load(
     "models/severity_model.pkl"
 )
+
 
 # Severity TF-IDF vectorizer
 severity_vectorizer = joblib.load(
@@ -98,12 +187,44 @@ severity_vectorizer = joblib.load(
 # REQUEST MODELS
 # ============================================================
 
+
+class RegisterRequest(BaseModel):
+    """
+    Request model for user registration.
+    """
+
+    name: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    """
+    Request model for user login.
+    """
+
+    email: str
+    password: str
+
+
 class SituationRequest(BaseModel):
     """
-    Request model for situation analysis.
+    Request model for ML situation analysis.
     """
 
     situation: str
+
+
+class ChatRequest(BaseModel):
+    """
+    Request model for the RAG chatbot.
+
+    message -> user's question
+    language -> desired answer language
+    """
+
+    message: str
+    language: str = "english"
 
 
 class ContactRequest(BaseModel):
@@ -164,8 +285,6 @@ class IncidentRequest(BaseModel):
 class ConfirmSOSRequest(BaseModel):
     """
     Request model for confirming an SOS.
-
-    The user confirms that the SOS should be recorded.
     """
 
     situation: str
@@ -185,7 +304,73 @@ def home():
 
     return {
         "message": "Nari-Shield AI backend is running!",
-        "ml_models": "loaded successfully"
+        "ml_models": "loaded successfully",
+        "rag": "loaded successfully",
+        "authentication": "loaded successfully"
+    }
+
+
+# ============================================================
+# USER REGISTRATION
+# ============================================================
+
+@app.post("/register")
+def register(request: RegisterRequest):
+    """
+    Register a new user.
+
+    The password is hashed inside auth.py
+    before being stored in MongoDB.
+    """
+
+    return register_user(
+        name=request.name,
+        email=request.email,
+        password=request.password
+    )
+
+
+# ============================================================
+# USER LOGIN
+# ============================================================
+
+@app.post("/login")
+def login(request: LoginRequest):
+    """
+    Authenticate an existing user.
+
+    The password is checked against
+    the stored password hash.
+
+    If successful, a JWT token is returned.
+    """
+
+    return login_user(
+        email=request.email,
+        password=request.password
+    )
+
+
+# ============================================================
+# JWT TEST ENDPOINT
+# ============================================================
+
+@app.get("/auth/me")
+def get_logged_in_user(
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Test JWT authentication.
+
+    This endpoint requires a valid JWT token.
+
+    If the token is valid, the user's ID
+    is returned.
+    """
+
+    return {
+        "message": "Authentication successful.",
+        "user_id": user_id
     }
 
 
@@ -194,9 +379,11 @@ def home():
 # ============================================================
 
 @app.post("/analyze")
-def analyze_situation(request: SituationRequest):
+def analyze_situation(
+    request: SituationRequest
+):
     """
-    Analyze a user's situation using the ML models.
+    Analyze a user's situation using ML.
 
     Returns:
     - risk type
@@ -286,6 +473,101 @@ def analyze_situation(request: SituationRequest):
         ),
 
         "sos": sos_decision
+    }
+
+
+# ============================================================
+# RAG AI SAFETY CHATBOT
+# ============================================================
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+    """
+    Generate a safety answer using the RAG pipeline.
+
+    Flow:
+
+    User question
+          ↓
+    FAISS retrieval
+          ↓
+    Safety knowledge
+          ↓
+    Groq LLM
+          ↓
+    Answer
+          ↓
+    Translation
+    """
+
+    # --------------------------------------------------------
+    # GENERATE RAG ANSWER
+    # --------------------------------------------------------
+
+    result = generate_answer(
+        request.message
+    )
+
+
+    # --------------------------------------------------------
+    # TRANSLATE ANSWER
+    # --------------------------------------------------------
+
+    translated_answer = result["answer"]
+
+
+    if request.language.lower() != "english":
+
+        try:
+
+            from deep_translator import GoogleTranslator
+
+
+            # Telugu
+            if request.language.lower() == "telugu":
+
+                translated_answer = (
+                    GoogleTranslator(
+                        source="auto",
+                        target="te"
+                    ).translate(
+                        result["answer"]
+                    )
+                )
+
+
+            # Hindi
+            elif request.language.lower() == "hindi":
+
+                translated_answer = (
+                    GoogleTranslator(
+                        source="auto",
+                        target="hi"
+                    ).translate(
+                        result["answer"]
+                    )
+                )
+
+
+        except Exception as error:
+
+            print(
+                "Translation error:",
+                error
+            )
+
+            translated_answer = result["answer"]
+
+
+    # --------------------------------------------------------
+    # RETURN RAG RESPONSE
+    # --------------------------------------------------------
+
+    return {
+        "answer": translated_answer,
+        "sources": result["sources"],
+        "emergency": result["emergency"],
+        "language": request.language
     }
 
 
@@ -434,7 +716,7 @@ def prepare_sos_request(
 
 
 # ============================================================
-# MANUAL INCIDENT RECORDING
+# INCIDENT RECORDING
 # ============================================================
 
 @app.post("/incidents")
@@ -485,12 +767,11 @@ def confirm_sos(
     """
     Confirm an SOS and record the incident.
 
-    The user's latest MongoDB location is included
-    automatically.
+    The latest stored location is included.
 
     IMPORTANT:
-    This endpoint records the confirmed SOS.
-    It does NOT send real SMS/calls yet.
+    This records the confirmed SOS.
+    It does NOT send real SMS/calls.
     """
 
     # --------------------------------------------------------

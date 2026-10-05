@@ -32,8 +32,6 @@ import os
 # LOAD .ENV FILE
 # ============================================================
 
-# Read the MONGO_URL variable from the .env file.
-
 load_dotenv()
 
 
@@ -68,6 +66,15 @@ client = MongoClient(MONGO_URL)
 # Our project database is called nari_shield.
 
 db = client["nari_shield"]
+
+
+# ============================================================
+# USERS COLLECTION
+# ============================================================
+
+# Stores registered user accounts.
+
+users_collection = db["users"]
 
 
 # ============================================================
@@ -128,6 +135,10 @@ def test_database_connection():
         print(
             "Database:",
             db.name
+        )
+
+        print(
+            "Users collection is ready!"
         )
 
         print(

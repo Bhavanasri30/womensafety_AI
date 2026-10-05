@@ -1,45 +1,120 @@
-# ---------------------------------------------------------
-# NARI-SHIELD RAG ANSWER
-# ---------------------------------------------------------
-
 import os
+
+from dotenv import load_dotenv
 from groq import Groq
 
-from retriever import retrieve_documents
-from prompts import create_prompt
+from rag.retriever import retrieve_documents
+from rag.prompts import create_prompt
 
 
-# ---------------------------------------------------------
-# STEP 1: GET GROQ API KEY
-# ---------------------------------------------------------
+# Load environment variables from .env
+load_dotenv()
 
+
+# Get Groq API key
 api_key = os.getenv("GROQ_API_KEY")
 
 if not api_key:
-    print("ERROR: GROQ_API_KEY is not set.")
-    exit()
+    raise ValueError(
+        "GROQ_API_KEY is not set. "
+        "Please add GROQ_API_KEY to your .env file."
+    )
 
 
-# ---------------------------------------------------------
-# STEP 2: CREATE GROQ CLIENT
-# ---------------------------------------------------------
-
+# Create Groq client
 client = Groq(api_key=api_key)
 
 
-# ---------------------------------------------------------
-# STEP 3: GENERATE RAG ANSWER
-# ---------------------------------------------------------
+def detect_emergency(question):
+    """
+    Detect whether the user's message contains
+    an emergency-related situation.
+
+    Supports English, Telugu and Hindi keywords.
+    """
+
+    question_lower = question.lower()
+
+    emergency_keywords = [
+
+        # -------------------------
+        # English
+        # -------------------------
+        "immediate danger",
+        "danger",
+        "help me",
+        "attacking me",
+        "being attacked",
+        "threatening me",
+        "following me",
+        "someone is after me",
+        "i am unsafe",
+        "i am in danger",
+
+        # -------------------------
+        # Telugu
+        # -------------------------
+        "వెంబడిస్తున్నారు",
+        "వెంటాడుతున్నారు",
+        "దాడి చేస్తున్నారు",
+        "దాడి",
+        "ప్రమాదంలో",
+        "ప్రమాదం",
+        "సహాయం కావాలి",
+        "నన్ను బెదిరిస్తున్నారు",
+        "బెదిరిస్తున్నారు",
+
+        # -------------------------
+        # Hindi
+        # -------------------------
+        "मेरा पीछा कर रहा है",
+        "मेरा पीछा कर रहे हैं",
+        "मुझे धमकी दे रहा है",
+        "मुझे धमकी दे रहे हैं",
+        "मुझ पर हमला",
+        "हमला कर रहा है",
+        "खतरे में",
+        "मदद चाहिए",
+        "मैं खतरे में हूं"
+    ]
+
+    for keyword in emergency_keywords:
+        if keyword in question_lower:
+            return True
+
+    return False
+
 
 def generate_answer(question):
+    """
+    Complete RAG pipeline:
 
-    # Retrieve relevant information from FAISS
-    results = retrieve_documents(question, k=3)
+    Question
+        ↓
+    FAISS retrieval
+        ↓
+    Context creation
+        ↓
+    Prompt
+        ↓
+    Groq LLM
+        ↓
+    Answer + sources + emergency status
+    """
+
+    # ---------------------------------
+    # STEP 1: Retrieve relevant chunks
+    # ---------------------------------
+
+    results = retrieve_documents(
+        question,
+        k=3
+    )
 
 
-    # -----------------------------------------------------
-    # CREATE TRUSTED CONTEXT
-    # -----------------------------------------------------
+    # ---------------------------------
+    # STEP 2: Create context
+    # ---------------------------------
 
     context_parts = []
 
@@ -53,9 +128,9 @@ def generate_answer(question):
     context = "\n\n".join(context_parts)
 
 
-    # -----------------------------------------------------
-    # CREATE PROMPT
-    # -----------------------------------------------------
+    # ---------------------------------
+    # STEP 3: Create RAG prompt
+    # ---------------------------------
 
     prompt = create_prompt(
         context,
@@ -63,9 +138,9 @@ def generate_answer(question):
     )
 
 
-    # -----------------------------------------------------
-    # SEND PROMPT TO GROQ
-    # -----------------------------------------------------
+    # ---------------------------------
+    # STEP 4: Generate answer using Groq
+    # ---------------------------------
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
@@ -79,16 +154,12 @@ def generate_answer(question):
     )
 
 
-    # -----------------------------------------------------
-    # GET AI ANSWER
-    # -----------------------------------------------------
-
     answer = response.choices[0].message.content
 
 
-    # -----------------------------------------------------
-    # GET SOURCE FILE NAMES
-    # -----------------------------------------------------
+    # ---------------------------------
+    # STEP 5: Collect unique sources
+    # ---------------------------------
 
     sources = []
 
@@ -100,35 +171,16 @@ def generate_answer(question):
             sources.append(filename)
 
 
-    # -----------------------------------------------------
-    # DETECT EMERGENCY
-    # -----------------------------------------------------
-    # These words indicate that the user may be in
-    # immediate danger.
-    # -----------------------------------------------------
+    # ---------------------------------
+    # STEP 6: Detect emergency
+    # ---------------------------------
 
-    emergency_keywords = [
-        "immediate danger",
-        "danger",
-        "help me",
-        "attacking me",
-        "being attacked",
-        "threatening me",
-        "following me",
-        "someone is after me"
-    ]
-
-    question_lower = question.lower()
-
-    emergency = any(
-        keyword in question_lower
-        for keyword in emergency_keywords
-    )
+    emergency = detect_emergency(question)
 
 
-    # -----------------------------------------------------
-    # RETURN STRUCTURED RESULT
-    # -----------------------------------------------------
+    # ---------------------------------
+    # STEP 7: Return final result
+    # ---------------------------------
 
     return {
         "answer": answer,
@@ -137,9 +189,9 @@ def generate_answer(question):
     }
 
 
-# ---------------------------------------------------------
-# STEP 4: TEST THE RAG SYSTEM
-# ---------------------------------------------------------
+# ---------------------------------
+# Direct testing
+# ---------------------------------
 
 if __name__ == "__main__":
 
@@ -148,20 +200,12 @@ if __name__ == "__main__":
     result = generate_answer(question)
 
 
-    # -----------------------------------------------------
-    # DISPLAY ANSWER
-    # -----------------------------------------------------
-
     print("\n====================================")
     print("NARI-SHIELD AI RESPONSE")
     print("====================================")
 
     print(result["answer"])
 
-
-    # -----------------------------------------------------
-    # DISPLAY SOURCES
-    # -----------------------------------------------------
 
     print("\n====================================")
     print("SOURCES")
@@ -170,10 +214,6 @@ if __name__ == "__main__":
     for source in result["sources"]:
         print("-", source)
 
-
-    # -----------------------------------------------------
-    # DISPLAY EMERGENCY STATUS
-    # -----------------------------------------------------
 
     print("\n====================================")
     print("EMERGENCY")

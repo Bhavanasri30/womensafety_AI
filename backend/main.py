@@ -18,15 +18,12 @@
 # 11. Incident history
 # 12. Confirmed SOS
 
+
 # ============================================================
 # IMPORT LIBRARIES
 # ============================================================
 
-from fastapi import (
-    FastAPI,
-    Depends,
-    HTTPException
-)
+from fastapi import FastAPI, Depends, HTTPException
 
 from fastapi.security import (
     HTTPBearer,
@@ -98,12 +95,6 @@ from rag.rag_answer import generate_answer
 # JWT SECURITY
 # ============================================================
 
-# HTTPBearer allows FastAPI to receive:
-#
-# Authorization: Bearer <JWT_TOKEN>
-#
-# This will be used to protect private endpoints.
-
 security = HTTPBearer()
 
 
@@ -135,23 +126,16 @@ def get_current_user(
         return HTTP 401 error.
     """
 
-    # Get the actual token from:
-    #
-    # Authorization: Bearer <token>
-    #
     token = credentials.credentials
 
-    # Verify the token
     user_id = verify_access_token(token)
 
-    # Token is invalid or expired
     if user_id is None:
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired authentication token."
         )
 
-    # Return the logged-in user's ID
     return user_id
 
 
@@ -405,40 +389,30 @@ def analyze_situation(
         risk_features
     )[0]
 
-    risk_probabilities = (
-        risk_model.predict_proba(
-            risk_features
-        )
+    risk_probabilities = risk_model.predict_proba(
+        risk_features
     )
 
-    risk_confidence = (
-        risk_probabilities.max()
-    )
+    risk_confidence = risk_probabilities.max()
 
 
     # --------------------------------------------------------
     # SEVERITY PREDICTION
     # --------------------------------------------------------
 
-    severity_features = (
-        severity_vectorizer.transform(
-            [request.situation]
-        )
+    severity_features = severity_vectorizer.transform(
+        [request.situation]
     )
 
     severity = severity_model.predict(
         severity_features
     )[0]
 
-    severity_probabilities = (
-        severity_model.predict_proba(
-            severity_features
-        )
+    severity_probabilities = severity_model.predict_proba(
+        severity_features
     )
 
-    severity_confidence = (
-        severity_probabilities.max()
-    )
+    severity_confidence = severity_probabilities.max()
 
 
     # --------------------------------------------------------
@@ -515,13 +489,11 @@ def chat(request: ChatRequest):
 
     translated_answer = result["answer"]
 
-
     if request.language.lower() != "english":
 
         try:
 
             from deep_translator import GoogleTranslator
-
 
             # Telugu
             if request.language.lower() == "telugu":
@@ -535,7 +507,6 @@ def chat(request: ChatRequest):
                     )
                 )
 
-
             # Hindi
             elif request.language.lower() == "hindi":
 
@@ -547,7 +518,6 @@ def chat(request: ChatRequest):
                         result["answer"]
                     )
                 )
-
 
         except Exception as error:
 
@@ -577,13 +547,15 @@ def chat(request: ChatRequest):
 
 @app.post("/contacts")
 def create_contact(
-    request: ContactRequest
+    request: ContactRequest,
+    user_id: str = Depends(get_current_user)
 ):
     """
-    Add a trusted contact.
+    Add a trusted contact for the authenticated user.
     """
 
     return add_contact(
+        user_id,
         request.name,
         request.phone,
         request.relationship
@@ -591,23 +563,31 @@ def create_contact(
 
 
 @app.get("/contacts")
-def read_contacts():
+def read_contacts(
+    user_id: str = Depends(get_current_user)
+):
     """
-    Get all trusted contacts.
+    Get only the authenticated user's trusted contacts.
     """
 
     return {
-        "contacts": get_contacts()
+        "contacts": get_contacts(user_id)
     }
 
 
 @app.delete("/contacts/{phone}")
-def delete_contact(phone: str):
+def delete_contact(
+    phone: str,
+    user_id: str = Depends(get_current_user)
+):
     """
-    Delete a trusted contact.
+    Delete only the authenticated user's trusted contact.
     """
 
-    return remove_contact(phone)
+    return remove_contact(
+        user_id,
+        phone
+    )
 
 
 # ============================================================
@@ -616,13 +596,15 @@ def delete_contact(phone: str):
 
 @app.post("/safety-word")
 def create_safety_word(
-    request: SafetyWordRequest
+    request: SafetyWordRequest,
+    user_id: str = Depends(get_current_user)
 ):
     """
-    Save or update the user's safety word.
+    Save or update the authenticated user's safety word.
     """
 
     result = set_safety_word(
+        user_id,
         request.word
     )
 
@@ -632,12 +614,15 @@ def create_safety_word(
 
 
 @app.get("/safety-word")
-def safety_word_status():
+def safety_word_status(
+    user_id: str = Depends(get_current_user)
+):
     """
-    Check whether a safety word is configured.
+    Check whether the authenticated user
+    has configured a safety word.
     """
 
-    word = get_safety_word()
+    word = get_safety_word(user_id)
 
     return {
         "configured": word is not None
@@ -646,14 +631,16 @@ def safety_word_status():
 
 @app.post("/safety-word/check")
 def check_message_for_safety_word(
-    request: SafetyMessageRequest
+    request: SafetyMessageRequest,
+    user_id: str = Depends(get_current_user)
 ):
     """
     Check whether a message contains
-    the configured safety word.
+    the authenticated user's safety word.
     """
 
     return check_safety_word(
+        user_id,
         request.message
     )
 
@@ -664,55 +651,42 @@ def check_message_for_safety_word(
 
 @app.post("/location")
 def save_location(
-    request: LocationRequest
+    request: LocationRequest,
+    user_id: str = Depends(get_current_user)
 ):
     """
-    Save or update the user's latest location.
+    Save or update the authenticated user's latest location.
     """
 
     return update_location(
+        user_id,
         request.latitude,
         request.longitude
     )
 
 
 @app.get("/location")
-def read_location():
+def read_location(
+    user_id: str = Depends(get_current_user)
+):
     """
-    Get the latest stored location.
+    Get the authenticated user's latest stored location.
     """
 
     return {
-        "location": get_location()
+        "location": get_location(user_id)
     }
 
 
 @app.delete("/location")
-def delete_location():
-    """
-    Clear the stored location.
-    """
-
-    return clear_location()
-
-
-# ============================================================
-# SOS PREPARATION
-# ============================================================
-
-@app.post("/sos/prepare")
-def prepare_sos_request(
-    request: SOSRequest
+def delete_location(
+    user_id: str = Depends(get_current_user)
 ):
     """
-    Prepare an SOS package.
-
-    This does NOT send an external notification.
+    Clear the authenticated user's stored location.
     """
 
-    return prepare_sos(
-        situation=request.situation
-    )
+    return clear_location(user_id)
 
 
 # ============================================================
@@ -721,13 +695,15 @@ def prepare_sos_request(
 
 @app.post("/incidents")
 def create_incident(
-    request: IncidentRequest
+    request: IncidentRequest,
+    user_id: str = Depends(get_current_user)
 ):
     """
-    Manually record an incident in MongoDB.
+    Manually record an incident for the authenticated user.
     """
 
     return add_incident(
+        user_id=user_id,
         situation=request.situation,
         risk_type=request.risk_type,
         severity=request.severity,
@@ -737,23 +713,48 @@ def create_incident(
 
 
 @app.get("/incidents")
-def read_incidents():
+def read_incidents(
+    user_id: str = Depends(get_current_user)
+):
     """
-    Retrieve incident history.
+    Retrieve only the authenticated user's incident history.
     """
 
     return {
-        "incidents": get_incidents()
+        "incidents": get_incidents(user_id)
     }
 
 
 @app.delete("/incidents")
-def delete_incidents():
+def delete_incidents(
+    user_id: str = Depends(get_current_user)
+):
     """
-    Clear incident history.
+    Clear only the authenticated user's incident history.
     """
 
-    return clear_incidents()
+    return clear_incidents(user_id)
+
+
+# ============================================================
+# SOS PREPARATION
+# ============================================================
+
+@app.post("/sos/prepare")
+def prepare_sos_request(
+    request: SOSRequest,
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Prepare an SOS package for the authenticated user.
+
+    This does NOT send an external notification.
+    """
+
+    return prepare_sos(
+        user_id=user_id,
+        situation=request.situation
+    )
 
 
 # ============================================================
@@ -762,39 +763,24 @@ def delete_incidents():
 
 @app.post("/sos/confirm")
 def confirm_sos(
-    request: ConfirmSOSRequest
+    request: ConfirmSOSRequest,
+    user_id: str = Depends(get_current_user)
 ):
     """
-    Confirm an SOS and record the incident.
+    Confirm and record an SOS for the authenticated user.
 
-    The latest stored location is included.
-
-    IMPORTANT:
-    This records the confirmed SOS.
-    It does NOT send real SMS/calls.
+    This does NOT send SMS, calls, or external notifications.
     """
 
-    # --------------------------------------------------------
-    # GET LATEST LOCATION
-    # --------------------------------------------------------
-
-    location = get_location()
-
-
-    # --------------------------------------------------------
-    # PREPARE SOS INFORMATION
-    # --------------------------------------------------------
+    location = get_location(user_id)
 
     sos_package = prepare_sos(
+        user_id=user_id,
         situation=request.situation
     )
 
-
-    # --------------------------------------------------------
-    # RECORD INCIDENT
-    # --------------------------------------------------------
-
-    incident_result = add_incident(
+    incident = add_incident(
+        user_id=user_id,
         situation=request.situation,
         risk_type=request.risk_type,
         severity=request.severity,
@@ -802,15 +788,7 @@ def confirm_sos(
         sos_status="confirmed"
     )
 
-
-    # --------------------------------------------------------
-    # RETURN COMPLETE RESULT
-    # --------------------------------------------------------
-
     return {
-        "message": "SOS confirmed and incident recorded.",
-
         "sos": sos_package,
-
-        "incident": incident_result["incident"]
+        "incident": incident
     }

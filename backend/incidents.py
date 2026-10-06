@@ -1,45 +1,18 @@
-# ============================================================
-# NARI-SHIELD AI - INCIDENT HISTORY MODULE
-# ============================================================
-
-# This module stores incident history in MongoDB Atlas.
-#
-# Data flow:
-#
-# FastAPI
-#     ↓
-# incidents.py
-#     ↓
-# MongoDB Atlas
-#     ↓
-# incidents collection
-
-
-# ============================================================
-# IMPORTS
-# ============================================================
-
+from backend.database import incidents_collection
 from datetime import datetime
 
-from backend.database import incidents_collection
 
-
-# ============================================================
-# ADD INCIDENT
-# ============================================================
-
+# Add an incident for a specific user
 def add_incident(
+    user_id,
     situation,
     risk_type,
     severity,
     location,
     sos_status
 ):
-    """
-    Add a new safety incident to MongoDB.
-    """
-
     incident = {
+        "user_id": user_id,
         "situation": situation,
         "risk_type": risk_type,
         "severity": severity,
@@ -48,10 +21,8 @@ def add_incident(
         "created_at": datetime.now().isoformat()
     }
 
-    # Insert the incident into MongoDB.
     result = incidents_collection.insert_one(incident)
 
-    # Return the MongoDB ID as a string.
     incident["incident_id"] = str(result.inserted_id)
 
     return {
@@ -60,105 +31,28 @@ def add_incident(
     }
 
 
-# ============================================================
-# GET INCIDENTS
-# ============================================================
-
-def get_incidents():
-    """
-    Retrieve all incidents from MongoDB.
-    """
-
+# Get only the authenticated user's incidents
+def get_incidents(user_id):
     incidents = list(
-        incidents_collection.find({})
+        incidents_collection.find(
+            {"user_id": user_id}
+        )
     )
 
-    # Convert MongoDB ObjectId to string
-    # so FastAPI can return it as JSON.
     for incident in incidents:
-
-        incident["incident_id"] = str(
-            incident["_id"]
-        )
-
+        incident["incident_id"] = str(incident["_id"])
         del incident["_id"]
 
     return incidents
 
 
-# ============================================================
-# CLEAR INCIDENT HISTORY
-# ============================================================
-
-def clear_incidents():
-    """
-    Delete all incidents from MongoDB.
-    """
-
-    result = incidents_collection.delete_many({})
+# Delete only the authenticated user's incidents
+def clear_incidents(user_id):
+    result = incidents_collection.delete_many(
+        {"user_id": user_id}
+    )
 
     return {
         "message": "Incident history cleared successfully",
         "deleted_count": result.deleted_count
     }
-
-
-# ============================================================
-# TEST MODULE
-# ============================================================
-
-if __name__ == "__main__":
-
-    print(
-        "Testing Incident History MongoDB module..."
-    )
-
-    # --------------------------------------------------------
-    # ADD TEST INCIDENT
-    # --------------------------------------------------------
-
-    result = add_incident(
-        situation="Someone is following me.",
-        risk_type="public safety / stalking",
-        severity="medium",
-        location={
-            "latitude": 16.9891,
-            "longitude": 82.2475
-        },
-        sos_status="not triggered"
-    )
-
-    print("\nAdded Incident:")
-    print(result)
-
-
-    # --------------------------------------------------------
-    # GET INCIDENTS
-    # --------------------------------------------------------
-
-    print("\nIncident History:")
-
-    incidents = get_incidents()
-
-    print(incidents)
-
-
-    # --------------------------------------------------------
-    # CLEAR TEST INCIDENTS
-    # --------------------------------------------------------
-
-    result = clear_incidents()
-
-    print("\nAfter Clearing:")
-    print(result)
-
-
-    # --------------------------------------------------------
-    # VERIFY CLEARING
-    # --------------------------------------------------------
-
-    print("\nIncident History After Clearing:")
-
-    print(
-        get_incidents()
-    )

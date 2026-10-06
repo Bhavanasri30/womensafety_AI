@@ -1,65 +1,44 @@
-# ============================================================
-# NARI-SHIELD AI - TRUSTED CONTACTS MODULE
-# ============================================================
-
-# This module stores trusted contacts in MongoDB Atlas
-# instead of temporary Python memory.
-
-
-# ============================================================
-# IMPORT MONGODB COLLECTION
-# ============================================================
-
 from backend.database import contacts_collection
 
 
-# ============================================================
-# ADD TRUSTED CONTACT
-# ============================================================
-
-def add_contact(name, phone, relationship):
-    """
-    Add a trusted contact to MongoDB.
-    """
-
+# Add a trusted contact for a specific user
+def add_contact(user_id, name, phone, relationship):
     contact = {
-        "name": name,
-        "phone": phone,
-        "relationship": relationship
+        "user_id": user_id,
+        "name": name.strip(),
+        "phone": phone.strip(),
+        "relationship": relationship.strip()
     }
 
-    # Insert the contact into MongoDB.
     result = contacts_collection.insert_one(contact)
 
     return {
         "message": "Trusted contact added successfully",
         "contact": {
             "id": str(result.inserted_id),
-            "name": name,
-            "phone": phone,
-            "relationship": relationship
+            "user_id": user_id,
+            "name": name.strip(),
+            "phone": phone.strip(),
+            "relationship": relationship.strip()
         }
     }
 
 
-# ============================================================
-# GET ALL TRUSTED CONTACTS
-# ============================================================
-
-def get_contacts():
-    """
-    Retrieve all trusted contacts from MongoDB.
-    """
-
+# Get only the logged-in user's contacts
+def get_contacts(user_id):
     contacts = list(
         contacts_collection.find(
-            {},
-            {"_id": 1, "name": 1, "phone": 1, "relationship": 1}
+            {"user_id": user_id},
+            {
+                "_id": 1,
+                "user_id": 1,
+                "name": 1,
+                "phone": 1,
+                "relationship": 1
+            }
         )
     )
 
-    # Convert MongoDB ObjectId to string
-    # because ObjectId cannot be directly returned as JSON.
     for contact in contacts:
         contact["id"] = str(contact["_id"])
         del contact["_id"]
@@ -67,17 +46,13 @@ def get_contacts():
     return contacts
 
 
-# ============================================================
-# REMOVE TRUSTED CONTACT
-# ============================================================
-
-def remove_contact(phone):
-    """
-    Remove a trusted contact using the phone number.
-    """
-
+# Remove only the logged-in user's contact
+def remove_contact(user_id, phone):
     result = contacts_collection.delete_one(
-        {"phone": phone}
+        {
+            "user_id": user_id,
+            "phone": phone.strip()
+        }
     )
 
     if result.deleted_count == 0:
@@ -88,36 +63,3 @@ def remove_contact(phone):
     return {
         "message": "Contact removed successfully"
     }
-
-
-# ============================================================
-# TEST MODULE
-# ============================================================
-
-if __name__ == "__main__":
-
-    print("Testing Trusted Contacts MongoDB module...")
-
-    # Add a test contact
-    result = add_contact(
-        "Test Contact",
-        "9999999999",
-        "Friend"
-    )
-
-    print("\nAdded Contact:")
-    print(result)
-
-    # Get contacts
-    print("\nAll Contacts:")
-    print(get_contacts())
-
-    # Remove test contact
-    result = remove_contact("9999999999")
-
-    print("\nRemove Contact:")
-    print(result)
-
-    # Check contacts again
-    print("\nContacts After Removal:")
-    print(get_contacts())

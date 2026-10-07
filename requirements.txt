@@ -12,3 +12,4 @@ scikit-learn
 joblib
 numpy
 pandas
+faiss-cpu

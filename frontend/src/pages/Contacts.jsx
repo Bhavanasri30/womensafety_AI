@@ -43,7 +43,20 @@ export default function Contacts() {
 
     try {
       const response = await getContacts();
-      setContacts(Array.isArray(response) ? response : []);
+
+      /*
+       * Support both possible backend response formats:
+       *
+       * 1. [ {...}, {...} ]
+       * 2. { contacts: [ {...}, {...} ] }
+       */
+      const contactList = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.contacts)
+          ? response.contacts
+          : [];
+
+      setContacts(contactList);
     } catch (err) {
       setError(
         err?.response?.data?.detail ||
@@ -96,6 +109,7 @@ export default function Contacts() {
       });
 
       setSuccess("Trusted contact added successfully.");
+
       await loadContacts();
     } catch (err) {
       setError(

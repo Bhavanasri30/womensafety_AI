@@ -13,4 +13,4 @@ joblib
 numpy
 pandas
 faiss-cpu
-
+sentence-transformers

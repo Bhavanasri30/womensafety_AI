@@ -5,7 +5,7 @@
 import numpy as np
 
 from rag.faiss_index import index
-from rag.embeddings import get_model
+from rag.embeddings import encode_texts
 from rag.chunk_documents import chunks
 
 
@@ -14,14 +14,8 @@ def retrieve_documents(query, k=3):
     Retrieve the most relevant document chunks using FAISS.
     """
 
-    # Load embedding model only when retrieval is needed
-    model = get_model()
-
-    # Convert user query into an embedding
-    query_embedding = model.encode(
-        [query],
-        convert_to_numpy=True
-    )
+    # Convert the user query into a lightweight embedding
+    query_embedding = encode_texts([query])
 
     query_vector = np.asarray(
         query_embedding,
@@ -48,15 +42,12 @@ def retrieve_documents(query, k=3):
         indices[0]
     ):
 
-        # Ignore invalid FAISS indexes
         if idx < 0 or idx >= len(chunks):
             continue
 
         chunk = chunks[idx]
-
         filename = chunk["filename"]
 
-        # Avoid returning the same document multiple times
         if filename in seen_sources:
             continue
 
@@ -68,7 +59,6 @@ def retrieve_documents(query, k=3):
             "distance": float(distance)
         })
 
-        # Stop after collecting k unique documents
         if len(results) >= k:
             break
 

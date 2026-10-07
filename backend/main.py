@@ -2,37 +2,36 @@
 # NARI-SHIELD AI - FASTAPI BACKEND
 # ============================================================
 
-# Main backend for the Nari-Shield AI system.
-#
-# Modules:
-# 1. User registration
-# 2. User login
-# 3. JWT authentication
-# 4. ML situation analysis
-# 5. RAG safety chatbot
-# 6. SOS decision
-# 7. Trusted contacts
-# 8. Safety word
-# 9. Location
-# 10. SOS preparation
-# 11. Incident history
-# 12. Confirmed SOS
+"""
+Main backend for the Nari-Shield AI system.
 
+Modules:
+1. User registration
+2. User login
+3. JWT authentication
+4. ML situation analysis
+5. RAG safety chatbot
+6. SOS decision
+7. Trusted contacts
+8. Safety word
+9. Location
+10. SOS preparation
+11. Incident history
+12. Confirmed SOS
+"""
 
 # ============================================================
 # IMPORT LIBRARIES
 # ============================================================
 
 from fastapi import FastAPI, Depends, HTTPException
-
 from fastapi.security import (
     HTTPBearer,
     HTTPAuthorizationCredentials
 )
-
 from pydantic import BaseModel
-
 import joblib
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # ============================================================
@@ -46,10 +45,8 @@ from backend.auth import (
     verify_access_token
 )
 
-
 # ML + SOS
 from backend.sos import get_sos_decision
-
 
 # Trusted contacts
 from backend.contacts import (
@@ -58,7 +55,6 @@ from backend.contacts import (
     remove_contact
 )
 
-
 # Safety word
 from backend.safety_word import (
     set_safety_word,
@@ -66,10 +62,8 @@ from backend.safety_word import (
     check_safety_word
 )
 
-
 # SOS preparation
 from backend.sos_service import prepare_sos
-
 
 # Location
 from backend.location import (
@@ -78,14 +72,12 @@ from backend.location import (
     clear_location
 )
 
-
 # Incidents
 from backend.incidents import (
     add_incident,
     get_incidents,
     clear_incidents
 )
-
 
 # RAG
 from rag.rag_answer import generate_answer
@@ -106,6 +98,23 @@ app = FastAPI(
     title="Nari-Shield AI API",
     description="AI-powered women safety analysis backend",
     version="1.0.0"
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+# Allow frontend applications from any origin.
+# Authentication uses JWT in the Authorization header,
+# so browser credentials/cookies are not required.
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -148,18 +157,15 @@ risk_model = joblib.load(
     "models/risk_model.pkl"
 )
 
-
 # Risk TF-IDF vectorizer
 risk_vectorizer = joblib.load(
     "models/risk_vectorizer.pkl"
 )
 
-
 # Severity classification model
 severity_model = joblib.load(
     "models/severity_model.pkl"
 )
-
 
 # Severity TF-IDF vectorizer
 severity_vectorizer = joblib.load(
@@ -170,7 +176,6 @@ severity_vectorizer = joblib.load(
 # ============================================================
 # REQUEST MODELS
 # ============================================================
-
 
 class RegisterRequest(BaseModel):
     """
@@ -395,7 +400,6 @@ def analyze_situation(
 
     risk_confidence = risk_probabilities.max()
 
-
     # --------------------------------------------------------
     # SEVERITY PREDICTION
     # --------------------------------------------------------
@@ -414,7 +418,6 @@ def analyze_situation(
 
     severity_confidence = severity_probabilities.max()
 
-
     # --------------------------------------------------------
     # SOS DECISION
     # --------------------------------------------------------
@@ -424,28 +427,22 @@ def analyze_situation(
         severity
     )
 
-
     # --------------------------------------------------------
     # RETURN RESULT
     # --------------------------------------------------------
 
     return {
         "situation": request.situation,
-
         "risk_type": risk_type,
-
         "risk_confidence": round(
             risk_confidence * 100,
             2
         ),
-
         "severity": severity,
-
         "severity_confidence": round(
             severity_confidence * 100,
             2
         ),
-
         "sos": sos_decision
     }
 
@@ -482,7 +479,6 @@ def chat(request: ChatRequest):
         request.message
     )
 
-
     # --------------------------------------------------------
     # TRANSLATE ANSWER
     # --------------------------------------------------------
@@ -492,7 +488,6 @@ def chat(request: ChatRequest):
     if request.language.lower() != "english":
 
         try:
-
             from deep_translator import GoogleTranslator
 
             # Telugu
@@ -527,7 +522,6 @@ def chat(request: ChatRequest):
             )
 
             translated_answer = result["answer"]
-
 
     # --------------------------------------------------------
     # RETURN RAG RESPONSE

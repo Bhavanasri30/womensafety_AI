@@ -2,7 +2,10 @@ from backend.database import incidents_collection
 from datetime import datetime
 
 
-# Add an incident for a specific user
+# ============================================================
+# ADD INCIDENT
+# ============================================================
+
 def add_incident(
     user_id,
     situation,
@@ -23,7 +26,12 @@ def add_incident(
 
     result = incidents_collection.insert_one(incident)
 
+    # Convert MongoDB ObjectId into a JSON-safe string
     incident["incident_id"] = str(result.inserted_id)
+
+    # IMPORTANT:
+    # Remove MongoDB's ObjectId before returning to FastAPI
+    incident.pop("_id", None)
 
     return {
         "message": "Incident recorded successfully",
@@ -31,7 +39,10 @@ def add_incident(
     }
 
 
-# Get only the authenticated user's incidents
+# ============================================================
+# GET USER INCIDENTS
+# ============================================================
+
 def get_incidents(user_id):
     incidents = list(
         incidents_collection.find(
@@ -46,7 +57,10 @@ def get_incidents(user_id):
     return incidents
 
 
-# Delete only the authenticated user's incidents
+# ============================================================
+# CLEAR USER INCIDENTS
+# ============================================================
+
 def clear_incidents(user_id):
     result = incidents_collection.delete_many(
         {"user_id": user_id}

@@ -1,3 +1,7 @@
+# ---------------------------------------------------------
+# NARI-SHIELD RAG ANSWER SYSTEM
+# ---------------------------------------------------------
+
 import os
 
 from dotenv import load_dotenv
@@ -7,11 +11,12 @@ from rag.retriever import retrieve_documents
 from rag.prompts import create_prompt
 
 
-# Load environment variables from .env
+# ---------------------------------------------------------
+# LOAD ENVIRONMENT VARIABLES
+# ---------------------------------------------------------
+
 load_dotenv()
 
-
-# Get Groq API key
 api_key = os.getenv("GROQ_API_KEY")
 
 if not api_key:
@@ -21,25 +26,28 @@ if not api_key:
     )
 
 
-# Create Groq client
+# ---------------------------------------------------------
+# GROQ CLIENT
+# ---------------------------------------------------------
+
 client = Groq(api_key=api_key)
 
 
+# ---------------------------------------------------------
+# EMERGENCY DETECTION
+# ---------------------------------------------------------
+
 def detect_emergency(question):
     """
-    Detect whether the user's message contains
-    an emergency-related situation.
-
-    Supports English, Telugu and Hindi keywords.
+    Detect emergency-related situations in
+    English, Telugu and Hindi.
     """
 
     question_lower = question.lower()
 
     emergency_keywords = [
 
-        # -------------------------
         # English
-        # -------------------------
         "immediate danger",
         "danger",
         "help me",
@@ -51,9 +59,7 @@ def detect_emergency(question):
         "i am unsafe",
         "i am in danger",
 
-        # -------------------------
         # Telugu
-        # -------------------------
         "వెంబడిస్తున్నారు",
         "వెంటాడుతున్నారు",
         "దాడి చేస్తున్నారు",
@@ -64,9 +70,7 @@ def detect_emergency(question):
         "నన్ను బెదిరిస్తున్నారు",
         "బెదిరిస్తున్నారు",
 
-        # -------------------------
         # Hindi
-        # -------------------------
         "मेरा पीछा कर रहा है",
         "मेरा पीछा कर रहे हैं",
         "मुझे धमकी दे रहा है",
@@ -79,11 +83,16 @@ def detect_emergency(question):
     ]
 
     for keyword in emergency_keywords:
+
         if keyword in question_lower:
             return True
 
     return False
 
+
+# ---------------------------------------------------------
+# GENERATE RAG ANSWER
+# ---------------------------------------------------------
 
 def generate_answer(question):
     """
@@ -102,9 +111,9 @@ def generate_answer(question):
     Answer + sources + emergency status
     """
 
-    # ---------------------------------
-    # STEP 1: Retrieve relevant chunks
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 1: RETRIEVE RELEVANT DOCUMENTS
+    # -----------------------------------------------------
 
     results = retrieve_documents(
         question,
@@ -112,9 +121,9 @@ def generate_answer(question):
     )
 
 
-    # ---------------------------------
-    # STEP 2: Create context
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 2: CREATE CONTEXT
+    # -----------------------------------------------------
 
     context_parts = []
 
@@ -128,9 +137,9 @@ def generate_answer(question):
     context = "\n\n".join(context_parts)
 
 
-    # ---------------------------------
-    # STEP 3: Create RAG prompt
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 3: CREATE PROMPT
+    # -----------------------------------------------------
 
     prompt = create_prompt(
         context,
@@ -138,9 +147,9 @@ def generate_answer(question):
     )
 
 
-    # ---------------------------------
-    # STEP 4: Generate answer using Groq
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 4: GENERATE ANSWER USING GROQ
+    # -----------------------------------------------------
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
@@ -153,13 +162,12 @@ def generate_answer(question):
         temperature=0.3
     )
 
-
     answer = response.choices[0].message.content
 
 
-    # ---------------------------------
-    # STEP 5: Collect unique sources
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 5: COLLECT SOURCES
+    # -----------------------------------------------------
 
     sources = []
 
@@ -171,16 +179,16 @@ def generate_answer(question):
             sources.append(filename)
 
 
-    # ---------------------------------
-    # STEP 6: Detect emergency
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 6: DETECT EMERGENCY
+    # -----------------------------------------------------
 
     emergency = detect_emergency(question)
 
 
-    # ---------------------------------
-    # STEP 7: Return final result
-    # ---------------------------------
+    # -----------------------------------------------------
+    # STEP 7: RETURN RESULT
+    # -----------------------------------------------------
 
     return {
         "answer": answer,
@@ -189,16 +197,18 @@ def generate_answer(question):
     }
 
 
-# ---------------------------------
-# Direct testing
-# ---------------------------------
+# ---------------------------------------------------------
+# DIRECT TEST
+# ---------------------------------------------------------
 
 if __name__ == "__main__":
 
-    question = "I am in immediate danger. What should I do?"
+    question = (
+        "I am in immediate danger. "
+        "Someone is following me. What should I do?"
+    )
 
     result = generate_answer(question)
-
 
     print("\n====================================")
     print("NARI-SHIELD AI RESPONSE")
@@ -206,14 +216,12 @@ if __name__ == "__main__":
 
     print(result["answer"])
 
-
     print("\n====================================")
     print("SOURCES")
     print("====================================")
 
     for source in result["sources"]:
         print("-", source)
-
 
     print("\n====================================")
     print("EMERGENCY")

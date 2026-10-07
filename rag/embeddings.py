@@ -1,52 +1,50 @@
 # ---------------------------------------------------------
 # NARI-SHIELD EMBEDDINGS
 # ---------------------------------------------------------
-# This file converts the document chunks into numerical
-# vectors using a multilingual Sentence Transformer model.
-# ---------------------------------------------------------
 
 from sentence_transformers import SentenceTransformer
 
-# Import chunks from the rag package
-from rag.chunk_documents import chunks
 
-
-# ---------------------------------------------------------
-# LOAD EMBEDDING MODEL
-# ---------------------------------------------------------
-# This model supports multiple languages and creates
-# 384-dimensional embeddings.
-# ---------------------------------------------------------
-
-model = SentenceTransformer(
-    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+MODEL_NAME = (
+    "sentence-transformers/"
+    "paraphrase-multilingual-MiniLM-L12-v2"
 )
 
-
-# ---------------------------------------------------------
-# EXTRACT TEXT FROM CHUNKS
-# ---------------------------------------------------------
-
-texts = [chunk["text"] for chunk in chunks]
+_model = None
 
 
-# ---------------------------------------------------------
-# CREATE EMBEDDINGS
-# ---------------------------------------------------------
+def get_model():
+    """
+    Load the embedding model only when it is needed.
+    """
 
-embeddings = model.encode(
-    texts,
-    convert_to_numpy=True
-)
+    global _model
+
+    if _model is None:
+
+        print("Loading embedding model...")
+
+        _model = SentenceTransformer(
+            MODEL_NAME,
+            device="cpu"
+        )
+
+        print("Embedding model loaded successfully!")
+
+    return _model
 
 
-# ---------------------------------------------------------
-# INFORMATION
-# ---------------------------------------------------------
+def encode_texts(texts):
+    """
+    Convert text into embeddings.
+    """
 
-print("Embedding model loaded successfully!")
-print("Number of document chunks:", len(chunks))
-print("Embedding shape:", embeddings.shape)
+    model = get_model()
+
+    return model.encode(
+        texts,
+        convert_to_numpy=True
+    )
 
 
 # ---------------------------------------------------------
@@ -60,9 +58,17 @@ if __name__ == "__main__":
     print("====================================")
 
     print("Model:")
-    print("paraphrase-multilingual-MiniLM-L12-v2")
+    print(MODEL_NAME)
 
-    print("Number of chunks:", len(chunks))
+    print("Device:")
+    print("CPU")
+
+    test_text = [
+        "Someone is following me and I am scared."
+    ]
+
+    embeddings = encode_texts(test_text)
+
     print("Embedding shape:", embeddings.shape)
 
     print("====================================")

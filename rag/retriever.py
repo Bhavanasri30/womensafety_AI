@@ -1,29 +1,39 @@
+# ---------------------------------------------------------
+# NARI-SHIELD DOCUMENT RETRIEVER
+# ---------------------------------------------------------
+
 import numpy as np
 
 from rag.faiss_index import index
-from rag.embeddings import model
+from rag.embeddings import get_model
 from rag.chunk_documents import chunks
 
 
 def retrieve_documents(query, k=3):
     """
-    Retrieve relevant document chunks using FAISS.
-
-    Duplicate source files are removed so that
-    the same document is not returned multiple times.
+    Retrieve the most relevant document chunks using FAISS.
     """
 
-    # Convert the user's question into an embedding
-    query_embedding = model.encode([query])
+    # Load embedding model only when retrieval is needed
+    model = get_model()
 
-    query_vector = np.array(
-        query_embedding
-    ).astype("float32")
+    # Convert user query into an embedding
+    query_embedding = model.encode(
+        [query],
+        convert_to_numpy=True
+    )
 
-    # Search FAISS
-    # We search more chunks than needed because
-    # some chunks may belong to the same document.
-    search_k = max(k * 3, 10)
+    query_vector = np.asarray(
+        query_embedding,
+        dtype="float32"
+    )
+
+    # Search extra results so duplicate source files
+    # can be removed
+    search_k = min(
+        max(k * 3, 10),
+        index.ntotal
+    )
 
     distances, indices = index.search(
         query_vector,
@@ -31,8 +41,6 @@ def retrieve_documents(query, k=3):
     )
 
     results = []
-
-    # Keep track of source files already added
     seen_sources = set()
 
     for distance, idx in zip(
@@ -48,7 +56,7 @@ def retrieve_documents(query, k=3):
 
         filename = chunk["filename"]
 
-        # Skip duplicate source documents
+        # Avoid returning the same document multiple times
         if filename in seen_sources:
             continue
 
@@ -60,16 +68,16 @@ def retrieve_documents(query, k=3):
             "distance": float(distance)
         })
 
-        # Stop when we have enough unique documents
+        # Stop after collecting k unique documents
         if len(results) >= k:
             break
 
     return results
 
 
-# -----------------------------------------
-# Testing
-# -----------------------------------------
+# ---------------------------------------------------------
+# TEST
+# ---------------------------------------------------------
 
 if __name__ == "__main__":
 
@@ -94,7 +102,7 @@ if __name__ == "__main__":
             k=3
         )
 
-        print("\nRetrieved Unique Documents:")
+        print("\nRetrieved Documents:")
 
         for i, result in enumerate(
             results,
@@ -102,15 +110,15 @@ if __name__ == "__main__":
         ):
 
             print(f"\n--- Result {i} ---")
-
-            print("Source:")
-            print(result["filename"])
-
-            print("Distance:")
-            print(round(result["distance"], 4))
-
-            print("Text:")
-            print(result["text"][:300])
+            print("Source:", result["filename"])
+            print(
+                "Distance:",
+                round(result["distance"], 4)
+            )
+            print(
+                "Text:",
+                result["text"][:300]
+            )
 
     print("\n====================================")
     print("RETRIEVAL TEST COMPLETE")

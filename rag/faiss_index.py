@@ -1,16 +1,17 @@
 # ---------------------------------------------------------
 # NARI-SHIELD FAISS VECTOR DATABASE
 # ---------------------------------------------------------
-# This file:
-# 1. Creates the FAISS index for the first time
-# 2. Saves the index to disk
-# 3. Loads the saved index on future runs
+# Loads the existing FAISS index.
+#
+# The index should already be created locally and stored as:
+# rag/faiss_index.bin
+#
+# This avoids generating document embeddings every time
+# the backend starts.
 # ---------------------------------------------------------
 
 import os
 import faiss
-
-from rag.embeddings import embeddings
 
 
 # ---------------------------------------------------------
@@ -24,44 +25,26 @@ INDEX_PATH = os.path.join(
 
 
 # ---------------------------------------------------------
-# CREATE OR LOAD FAISS INDEX
+# LOAD EXISTING INDEX
 # ---------------------------------------------------------
 
-if os.path.exists(INDEX_PATH):
+if not os.path.exists(INDEX_PATH):
 
-    # -----------------------------------------------------
-    # Load existing FAISS index
-    # -----------------------------------------------------
+    raise FileNotFoundError(
+        f"FAISS index not found: {INDEX_PATH}"
+    )
 
-    index = faiss.read_index(INDEX_PATH)
 
-    print("Existing FAISS index loaded successfully!")
-    print("Embedding dimension:", index.d)
-    print("Number of vectors:", index.ntotal)
+index = faiss.read_index(INDEX_PATH)
 
-else:
 
-    # -----------------------------------------------------
-    # Create a new FAISS index
-    # -----------------------------------------------------
+# ---------------------------------------------------------
+# INFORMATION
+# ---------------------------------------------------------
 
-    dimension = embeddings.shape[1]
-
-    index = faiss.IndexFlatL2(dimension)
-
-    # Add document embeddings
-    index.add(embeddings)
-
-    # -----------------------------------------------------
-    # Save the index
-    # -----------------------------------------------------
-
-    faiss.write_index(index, INDEX_PATH)
-
-    print("New FAISS index created successfully!")
-    print("Embedding dimension:", dimension)
-    print("Number of vectors:", index.ntotal)
-    print("FAISS index saved to:", INDEX_PATH)
+print("Existing FAISS index loaded successfully!")
+print("Embedding dimension:", index.d)
+print("Number of vectors:", index.ntotal)
 
 
 # ---------------------------------------------------------
